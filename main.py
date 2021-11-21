@@ -183,7 +183,7 @@ async def manage_delete(ctx, hex):
             em = discord.Embed(title="Role Deleted", description=f"The role #{hexCode} has been deleted.", color=discord.Colour(0x00ff00))
             await ctx.send(embed=em)
         else:
-            em = discord.Embed(title="No Role", description=f"There is no role with the hex code #{hexCode}.", color=discord.Colour(0xff0000))
+            em = discord.Embed(title="No Role", description=f"There is no role with the hex code #{hexCode}. Did you type it right?", color=discord.Colour(0xff0000))
             await ctx.send(embed=em)
     else:
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
