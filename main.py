@@ -177,17 +177,13 @@ async def manage_deleteall(ctx):
 async def manage_delete(ctx, hex):
     if discord.utils.get(ctx.guild.roles, id=config.ADMINROLE) in ctx.author.roles:
         guild = ctx.guild
-        if len(hex) <= 6:
-            hexCode = hex.replace("#", "")
-            if discord.utils.get(guild.roles, name=f"#{hexCode}"):
-                await discord.utils.get(guild.roles, name=f"#{hexCode}").delete()
-                em = discord.Embed(title="Role Deleted", description=f"The role #{hexCode} has been deleted.", color=discord.Colour(0x00ff00))
-                await ctx.send(embed=em)
-            else:
-                em = discord.Embed(title="No Role", description=f"There is no role #{hexCode} on the server.", color=discord.Colour(0xff0000))
-                await ctx.send(embed=em)
+        hexCode = hex.replace("#", "")
+        if discord.utils.get(guild.roles, name=f"#{hexCode}"):
+            await discord.utils.get(guild.roles, name=f"#{hexCode}").delete()
+            em = discord.Embed(title="Role Deleted", description=f"The role #{hexCode} has been deleted.", color=discord.Colour(0x00ff00))
+            await ctx.send(embed=em)
         else:
-            em = discord.Embed(title="Invalid Hex", description=f"The hex code you entered is invalid.", color=discord.Colour(0xff0000))
+            em = discord.Embed(title="No Role", description=f"There is no role with the hex code #{hexCode}.", color=discord.Colour(0xff0000))
             await ctx.send(embed=em)
     else:
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
