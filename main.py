@@ -123,7 +123,7 @@ async def removeroles(ctx):
     em = discord.Embed(title="Roles Removed", description=f"{ctx.author.mention} has had all of their color roles removed.", color=discord.Colour(0x00ff00))
     await ctx.send(embed=em)
 
-@slash.slash(name="deleteroles", description="Deletes all the color roles from the server.")
+@slash.slash(name="deleteroles", description="Deletes all the color roles from the server.", permissions=[config.SERVERID: [create_permission(config.ADMINROLE, SlashCommandPermissionType.ROLE, True)]])
 async def deleteroles(ctx):
     guild = ctx.guild
     for role in guild.roles:
