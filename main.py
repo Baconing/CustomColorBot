@@ -18,11 +18,10 @@ from discord_slash.context import *
 from colorthief import ColorThief
 import os
 
-intents = discord.Intents.default()
-intents.members = True
+intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="*", intents=intents)
-slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, debug_guild=config.SERVERID, application_id=config.APPLICATIONID)
+slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, debug_guild=config.DEBUGSERVER, application_id=config.APPLICATIONID)
 
 # cogTypes = ["commands", "handlers", "listeners"]
 
@@ -146,7 +145,7 @@ async def roles_remove(ctx):
 
 @slash.subcommand(base="manage", name="help", description="Shows the help menu for the manage commands.")
 async def manage_help(ctx):
-    if discord.utils.get(ctx.guild.roles, id=config.ADMINROLE) in ctx.author.roles:
+    if ctx.author.permissions_in(ctx.channel).administrator:
         em = discord.Embed(title="Help Menu", description="The following commands are available for the manage command.", color=discord.Colour(0x00ff00))
         em.add_field(name="help", value="Shows the help menu for the manage command.", inline=False)
         em.add_field(name="deleteall", value="Deletes all color roles from the server.", inline=False)
@@ -159,7 +158,7 @@ async def manage_help(ctx):
 
 @slash.subcommand(base="manage", name="deleteall", description="Deletes all color roles from the server.")
 async def manage_deleteall(ctx):
-    if discord.utils.get(ctx.guild.roles, id=config.ADMINROLE) in ctx.author.roles:
+    if ctx.author.permissions_in(ctx.channel).administrator:
         if len(ctx.guild.roles) > 1:
             for role in ctx.guild.roles:
                 if role.name.startswith("#"):
@@ -175,7 +174,7 @@ async def manage_deleteall(ctx):
 
 @slash.subcommand(base="manage", name="delete", description="Deletes a color role from the server.", options=[create_option(name="hex", description="The hex code of the color role you want to delete.", option_type=3, required=True)])
 async def manage_delete(ctx, hex):
-    if discord.utils.get(ctx.guild.roles, id=config.ADMINROLE) in ctx.author.roles:
+    if ctx.author.permissions_in(ctx.channel).administrator:
         guild = ctx.guild
         hexCode = hex.replace("#", "")
         if discord.utils.get(guild.roles, name=f"#{hexCode}"):
@@ -191,7 +190,7 @@ async def manage_delete(ctx, hex):
 
 @slash.subcommand(base="manage", name="listroles", description="Lists all of the color roles on the server.")
 async def manage_listroles(ctx):
-    if discord.utils.get(ctx.guild.roles, id=config.ADMINROLE) in ctx.author.roles:
+    if ctx.author.permissions_in(ctx.channel).administrator:
         guild = ctx.guild
         roles = []
         for role in guild.roles:
