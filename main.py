@@ -15,6 +15,7 @@ from discord_slash.utils.manage_commands import *
 from discord_slash.utils.manage_components import *
 from discord_slash.model import *
 from discord_slash.context import *
+from discord_slash.error import *
 from colorthief import ColorThief
 import os
 
@@ -37,9 +38,9 @@ def rgb2hex(r,g,b):
 @bot.event
 async def on_ready():
     print("Bot is ready!")
-    print(f"Logged in as {bot.user.name}")
+    print(f"\n\nLogged in as {bot.user.name}")
     print(f"ID: {bot.user.id}")
-    print(f"Discord.py version: {discord.__version__}")
+    print(f"\n\nDiscord.py version: {discord.__version__}")
     print(f"Discord.py version: {discord.version_info}")
     print(f"Discord.py version: {discord.version_info.major}")
     print(f"Discord.py version: {discord.version_info.minor}")
@@ -50,6 +51,11 @@ async def on_ready():
     await bot.change_presence(activity=discord.Game(name="with colors!!!!!"))
 
     bot.remove_command('help')
+
+    print("\n\nServers:")
+    for server in bot.guilds:
+        print(f"{server.name}")
+        await server.me.edit(nick=None)
 
 @bot.event
 async def on_member_join(member):
@@ -212,11 +218,24 @@ async def manage_listroles(ctx):
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
         await ctx.send(embed=em, delete_after=5)
 
+
+
+@slash.subcommand(base="debug", name="forceerror", description="Forces an error to be thrown.", options=[create_option(name="error", description="The error you want to throw.", option_type=3, required=False)])
+async def debug_forceerror(ctx, error=None):
+    if ctx.author.id in config.DEBUGPERMS:
+        if error == None:
+            raise SlashCommandError("This is a forced error.")
+        else:
+            raise SlashCommandError(f"{error} (Forced)")
+    else:
+        em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em, delete_after=5)
+
 @bot.event
 async def on_slash_command_error(ctx, ex):
-    em = discord.Embed(title="An error has occurred.", colour=0xaa0000)
+    em = discord.Embed(title="Error", colour=0xaa0000)
     em.add_field(name="Traceback", value=ex)
-    em.add_field(name="Support", value=f"wip")
+    em.add_field(name="Support", value=f"[Support Server](https://discord.gg/TZpHkkNUmh)")
     await ctx.send(embed=em, delete_after=10)
     print(f"\n\n\n\n\nError!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nLMFAO U SUCK AT CODING!!!!!!!!!!!!!!!!!!!!!!!\n\nDEBUG: {ctx.guild.name} - {ctx.channel} - {ctx.author}\n\nDEBUG: {ex}")
 
