@@ -9,5 +9,4 @@ PREFIX="!"   # Bot Prefix
 #######################
 #    Server Config    #
 #######################
-SERVERID = 910698852359757854    # Guild ID
-ADMINROLE = 910709375805567047   # Admin Role ID
+DEBUGSERVER = 910698852359757854    # Guild ID
