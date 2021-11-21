@@ -83,7 +83,7 @@ async def sync(ctx):
                     await ctx.author.remove_roles(role)
             await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
             em = discord.Embed(title="Role Added", description=f"{ctx.author.mention} has been given the role #{dominant_color}.", color=discord.Colour(int(dominant_color, base=16)))
-            await ctx.send(embed=em)
+            await ctx.send(embed=em, delete_after=5)
         else:
             for role in ctx.author.roles:
                 if role.name.startswith("#") and role.name != f"#{dominant_color}":
@@ -91,7 +91,7 @@ async def sync(ctx):
             await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
             await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
             em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{dominant_color}.", color=discord.Colour(int(dominant_color, base=16)))
-            await ctx.send(embed=em)
+            await ctx.send(embed=em, delete_after=5)
     else:
         raise discord_slash.exceptions.SlashError(f"{ctx.author.name}'s profile picture is not available.")
 
@@ -105,7 +105,7 @@ async def hex(ctx, hex):
                 await ctx.author.remove_roles(role)
         await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
         em = discord.Embed(title="Role Added", description=f"{ctx.author.mention} has been given the role #{hexCode}.", color=discord.Colour(int(hexCode, base=16)))
-        await ctx.send(embed=em)
+        await ctx.send(embed=em, delete_after=5)
     else:
         for role in ctx.author.roles:
             if role.name.startswith("#") and role.name != f"#{hexCode}":
@@ -113,7 +113,7 @@ async def hex(ctx, hex):
         await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
         await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
         em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{hexCode}.", color=discord.Colour(int(hexCode, base=16)))
-        await ctx.send(embed=em)
+        await ctx.send(embed=em, delete_after=5)
 
 @slash.slash(name="removeroles", description="Removes any color roles you have.")
 async def removeroles(ctx):
@@ -121,23 +121,79 @@ async def removeroles(ctx):
         if role.name.startswith("#"):
             await ctx.author.remove_roles(role)
     em = discord.Embed(title="Roles Removed", description=f"{ctx.author.mention} has had all of their color roles removed.", color=discord.Colour(0x00ff00))
-    await ctx.send(embed=em)
+    await ctx.send(embed=em, delete_after=5)
 
-@slash.slash(name="deleteroles", description="Deletes all the color roles from the server.", permissions=[config.SERVERID: [create_permission(config.ADMINROLE, SlashCommandPermissionType.ROLE, True)]])
-async def deleteroles(ctx):
+@slash.slash(name="manageroles", description="Manages the color roles on the server.", permissions={config.SERVERID: [create_permission(config.ADMINROLE, SlashCommandPermissionType.ROLE, True)]})
+async def manageroles(ctx):
+    guild = ctx.guild
+    em = discord.Embed(title="Color Roles Manager", description="`Delete Roles` - Deletes all color roles from the server.\n`Delete Role` - Deletes a color role from the server.\n`List Roles` - Lists all of the color roles on the server.", color=discord.Colour(0x00ff00))
+    buttons = [
+        create_button(
+            style=ButtonStyle.blurple,
+            label="Delete Roles",
+            custom_id="droles"
+        ),
+        create_button(
+            style=ButtonStyle.blurple,
+            label="Delete Role",
+        ),
+        create_button(
+            style=ButtonStyle.blurple,
+            label="List Roles",
+            custom_id="lroles"
+        )
+    ]
+    row = create_actionrow(buttons)
+    await ctx.send(embed=em, componets=[row])
+
+@slash.component_callback()
+async def droles(ctx: ComponentContext):
     guild = ctx.guild
     for role in guild.roles:
         if role.name.startswith("#"):
             await role.delete()
     em = discord.Embed(title="Roles Deleted", description=f"All color roles have been deleted.", color=discord.Colour(0x00ff00))
+    await ctx.send(embed=em, delete_after=5)
+
+@slash.component_callback()
+async def drole(ctx: ComponentContext):
+    em = discord.Embed(title="Delete Role", description="Please enter the hex code of the color role you want to delete.", color=discord.Colour(0x00ff00))
     await ctx.send(embed=em)
+    def check(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+    try:
+        msg = await ctx.bot.wait_for("message", check=check, timeout=30)
+    except asyncio.TimeoutError:
+        em = discord.Embed(title="Delete Role", description="You took too long to respond.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em, delete_after=5)
+        return
+    hexCode = msg.content.replace("#", "")
+    for role in ctx.guild.roles:
+        if role.name.startswith("#") and role.name == f"#{hexCode}":
+            await role.delete()
+    em = discord.Embed(title="Role Deleted", description=f"The role #{hexCode} has been deleted.", color=discord.Colour(0x00ff00))
+    await ctx.send(embed=em, delete_after=5)
+
+@slash.component_callback()
+async def lroles(ctx: ComponentContext):
+    guild = ctx.guild
+    roles = []
+    for role in guild.roles:
+        if role.name.startswith("#"):
+            roles.append(role.name)
+    em = discord.Embed(title="Color Roles", description="\n".join(roles), color=discord.Colour(0x00ff00))
+    try:
+        await ctx.send(embed=em, delete_after=5)
+    except discord.HTTPException:
+        em = discord.Embed(title="Color Roles", description=f"There are too many roles to put into a message. You have {len(roles)} color roles.", color=discord.Colour(0x00ff00))
+        await ctx.send(embed=em, delete_after=5)
 
 @bot.event
 async def on_slash_command_error(ctx, ex):
     em = discord.Embed(title="An error has occurred.", colour=0xaa0000)
     em.add_field(name="Traceback", value=ex)
     em.add_field(name="Support", value=f"wip")
-    await ctx.send(embed=em)
+    await ctx.send(embed=em, delete_after=10)
 
 
 bot.run(config.TOKEN)
