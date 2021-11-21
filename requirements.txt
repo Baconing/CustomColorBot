@@ -1,0 +1,6 @@
+discord
+discord_slash
+datetime
+requests
+shutil
+colortheif
