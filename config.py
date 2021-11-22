@@ -4,6 +4,7 @@
 TOKEN="OTEwOTk4NzMzNzkyMDg4MDk0.YZa_rw.o0do5kck_5YkVs9S0OUohhcsFjY"    # Bot Token
 APPLICATIONID = 910998733792088094    # Application ID
 CLIENTID = 910998733792088094    # Client ID
+OWNERS = [521808271368126467]    # Owner ID
 DEBUGPERMS = [521808271368126467]    # List of user IDs that can use debug commands
 PREFIX="!"   # Bot Prefix
 
