@@ -22,7 +22,7 @@ import os
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="*", intents=intents)
-slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, debug_guild=config.DEBUGSERVER, application_id=config.APPLICATIONID)
+slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, application_id=config.APPLICATIONID)
 
 # cogTypes = ["commands", "handlers", "listeners"]
 
@@ -151,7 +151,7 @@ async def roles_remove(ctx):
 
 @slash.subcommand(base="manage", name="help", description="Shows the help menu for the manage commands.")
 async def manage_help(ctx):
-    if ctx.author.permissions_in(ctx.channel).administrator:
+    if ctx.author.guild_permissions.administrator:
         em = discord.Embed(title="Help Menu", description="The following commands are available for the manage command.", color=discord.Colour(0x00ff00))
         em.add_field(name="help", value="Shows the help menu for the manage command.", inline=False)
         em.add_field(name="deleteall", value="Deletes all color roles from the server.", inline=False)
@@ -164,7 +164,7 @@ async def manage_help(ctx):
 
 @slash.subcommand(base="manage", name="deleteall", description="Deletes all color roles from the server.")
 async def manage_deleteall(ctx):
-    if ctx.author.permissions_in(ctx.channel).administrator:
+    if ctx.author.guild_permissions.administrator:
         if len(ctx.guild.roles) > 1:
             for role in ctx.guild.roles:
                 if role.name.startswith("#"):
@@ -180,7 +180,7 @@ async def manage_deleteall(ctx):
 
 @slash.subcommand(base="manage", name="delete", description="Deletes a color role from the server.", options=[create_option(name="hex", description="The hex code of the color role you want to delete.", option_type=3, required=True)])
 async def manage_delete(ctx, hex):
-    if ctx.author.permissions_in(ctx.channel).administrator:
+    if ctx.author.guild_permissions.administrator:
         guild = ctx.guild
         hexCode = hex.replace("#", "")
         if discord.utils.get(guild.roles, name=f"#{hexCode}"):
@@ -194,9 +194,22 @@ async def manage_delete(ctx, hex):
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
         await ctx.send(embed=em)
 
+@slash.subcommand(base="manage", name="deleteuseless", description="Deletes all roles with no members using it.")
+async def manage_deleteuseless(ctx):
+    if ctx.author.guild_permissions.administrator:
+        guild = ctx.guild
+        for role in guild.roles:
+            if role.name.startswith("#") and len(role.members) == 0:
+                await role.delete()
+        em = discord.Embed(title="Roles Deleted", description=f"All of the roles with no members using them have been deleted.", color=discord.Colour(0x00ff00))
+        await ctx.send(embed=em)
+    else:
+        em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em)
+
 @slash.subcommand(base="manage", name="listroles", description="Lists all of the color roles on the server.")
 async def manage_listroles(ctx):
-    if ctx.author.permissions_in(ctx.channel).administrator:
+    if ctx.author.guild_permissions.administrator:
         guild = ctx.guild
         roles = []
         for role in guild.roles:
@@ -218,6 +231,8 @@ async def manage_listroles(ctx):
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
         await ctx.send(embed=em, delete_after=5)
 
+
+# Debug Commands (Only for the bot owner)
 
 
 @slash.subcommand(base="debug", name="forceerror", description="Forces an error to be thrown.", options=[create_option(name="error", description="The error you want to throw.", option_type=3, required=False)])
