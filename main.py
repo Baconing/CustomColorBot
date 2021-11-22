@@ -151,7 +151,7 @@ async def roles_remove(ctx):
 
 @slash.subcommand(base="manage", name="help", description="Shows the help menu for the manage commands.")
 async def manage_help(ctx):
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         em = discord.Embed(title="Help Menu", description="The following commands are available for the manage command.", color=discord.Colour(0x00ff00))
         em.add_field(name="help", value="Shows the help menu for the manage command.", inline=False)
         em.add_field(name="deleteall", value="Deletes all color roles from the server.", inline=False)
@@ -164,7 +164,7 @@ async def manage_help(ctx):
 
 @slash.subcommand(base="manage", name="deleteall", description="Deletes all color roles from the server.")
 async def manage_deleteall(ctx):
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         if len(ctx.guild.roles) > 1:
             for role in ctx.guild.roles:
                 if role.name.startswith("#"):
@@ -180,7 +180,7 @@ async def manage_deleteall(ctx):
 
 @slash.subcommand(base="manage", name="delete", description="Deletes a color role from the server.", options=[create_option(name="hex", description="The hex code of the color role you want to delete.", option_type=3, required=True)])
 async def manage_delete(ctx, hex):
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         guild = ctx.guild
         hexCode = hex.replace("#", "")
         if discord.utils.get(guild.roles, name=f"#{hexCode}"):
@@ -196,7 +196,7 @@ async def manage_delete(ctx, hex):
 
 @slash.subcommand(base="manage", name="deleteuseless", description="Deletes all roles with no members using it.")
 async def manage_deleteuseless(ctx):
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         guild = ctx.guild
         for role in guild.roles:
             if role.name.startswith("#") and len(role.members) == 0:
@@ -209,7 +209,7 @@ async def manage_deleteuseless(ctx):
 
 @slash.subcommand(base="manage", name="listroles", description="Lists all of the color roles on the server.")
 async def manage_listroles(ctx):
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         guild = ctx.guild
         roles = []
         for role in guild.roles:
