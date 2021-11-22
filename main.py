@@ -47,7 +47,7 @@ async def on_ready():
     print(f"Discord.py version: {discord.version_info.micro}")
     print(f"Discord.py version: {discord.version_info.releaselevel}")
     print(f"Discord.py version: {discord.version_info.serial}")
-    
+
     await bot.change_presence(activity=discord.Game(name="with colors!!!!!"))
 
     bot.remove_command('help')
@@ -75,7 +75,7 @@ async def on_member_join(member):
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
         else:
             role = await guild.create_role(name=f"#{dominantColor}", colour=discord.Colour(int(dominantColor, base=16)))
-            await move_role(guild, role, position=len(guild.roles)-1)
+            await move_role(guild, role, position=len(guild.roles)-1))
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
 
 @bot.event
@@ -124,7 +124,7 @@ async def roles_sync(ctx):
                 if role.name.startswith("#") and role.name != f"#{dominant_color}":
                     await ctx.author.remove_roles(role)
             role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
-            await ctx.move_role(guild, role, position=len(guild.roles)-1)
+            await ctx.move_role(guild, role, position=len(guild.roles)-1))
             await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
             em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{dominant_color}.", color=discord.Colour(int(dominant_color, base=16)))
             await ctx.send(embed=em, delete_after=5)
@@ -147,7 +147,7 @@ async def roles_hex(ctx, hex):
             if role.name.startswith("#") and role.name != f"#{hexCode}":
                 await ctx.author.remove_roles(role)
         role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
-        await ctx.move_role(guild, discord.utils.get(guild.roles, role, position=len(guild.roles)-1)
+        await ctx.move_role(guild, discord.utils.get(guild.roles, role, position=len(guild.roles)-1))
         await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
         em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{hexCode}.", color=discord.Colour(int(hexCode, base=16)))
         await ctx.send(embed=em, delete_after=5)
