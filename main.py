@@ -55,7 +55,6 @@ async def on_ready():
     print("\n\nServers:")
     for server in bot.guilds:
         print(f"{server.name}")
-        await server.me.edit(nick=None)
 
 @bot.event
 async def on_member_join(member):
@@ -75,8 +74,25 @@ async def on_member_join(member):
         if discord.utils.get(guild.roles, name=f"#{dominantColor}"):
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
         else:
-            await guild.create_role(name=f"#{dominantColor}", colour=discord.Colour(int(dominantColor, base=16)))
+            role = await guild.create_role(name=f"#{dominantColor}", colour=discord.Colour(int(dominantColor, base=16)))
+            await move_role(guild, role, position=len(guild.roles)-1)
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
+
+@bot.event
+async def on_guild_join(guild):
+    print(f"Joined {guild.name}")
+    for channel in guild.channels:
+        if channel.name == "general":
+            if channel.permissions_for(guild.me).send_messages:
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em.set_thumbnail(url=f"{bot.user.avatar_url}")
+                await channel.send(embed=em)
+            else:
+                noPerms = discord.Embed(title="I do not have permission to send messages!", description="Please make sure I have the permission to send messages in all channels.", colour=discord.Colour(0xff0000))
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em.set_thumbnail(url=f"{bot.user.avatar_url}")
+                await guild.server.owner.send(embed=noPerms)
+                await guild.server.owner.send(embed=em)
 
 # Roles Commands
 
@@ -107,7 +123,8 @@ async def roles_sync(ctx):
             for role in ctx.author.roles:
                 if role.name.startswith("#") and role.name != f"#{dominant_color}":
                     await ctx.author.remove_roles(role)
-            await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
+            role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
+            await ctx.move_role(guild, role, position=len(guild.roles)-1)
             await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
             em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{dominant_color}.", color=discord.Colour(int(dominant_color, base=16)))
             await ctx.send(embed=em, delete_after=5)
@@ -129,7 +146,8 @@ async def roles_hex(ctx, hex):
         for role in ctx.author.roles:
             if role.name.startswith("#") and role.name != f"#{hexCode}":
                 await ctx.author.remove_roles(role)
-        await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
+        role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
+        await ctx.move_role(guild, discord.utils.get(guild.roles, role, position=len(guild.roles)-1)
         await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
         em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{hexCode}.", color=discord.Colour(int(hexCode, base=16)))
         await ctx.send(embed=em, delete_after=5)
