@@ -100,15 +100,27 @@ async def on_guild_join(guild):
     for channel in guild.channels:
         if channel.name == "general":
             if channel.permissions_for(guild.me).send_messages:
-                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly! Also, do /config position to set the position of where roles will go.", colour=discord.Colour(0x00ff00))
                 em.set_thumbnail(url=f"{bot.user.avatar_url}")
                 await channel.send(embed=em)
             else:
                 noPerms = discord.Embed(title="I do not have permission to send messages!", description="Please make sure I have the permission to send messages in all channels.", colour=discord.Colour(0xff0000))
-                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly! Also, do /config position to set the position of where roles will go.", colour=discord.Colour(0x00ff00))
                 em.set_thumbnail(url=f"{bot.user.avatar_url}")
                 await guild.server.owner.send(embed=noPerms)
                 await guild.server.owner.send(embed=em)
+    db = database.servers
+    post = {
+        "guild_id": guild.id,
+        "position": 0
+    }
+
+    collection = db.configs
+    posts = db.configs
+    if posts.findone({"guild_id": guild.id}):
+        pass
+    else:
+        posts.insert_one(post)
 
 # Roles Commands
 
@@ -169,7 +181,6 @@ async def roles_hex(ctx, hex):
         for role in ctx.author.roles:
             if role.name.startswith("#") and role.name != f"#{hexCode}":
                 await ctx.author.remove_roles(role)
-        role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
         db = database.servers
         collection = db.configs
         position = collection.find_one({"guild_id": guild.id})["position"]
@@ -211,7 +222,7 @@ async def manage_deleteall(ctx):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         if len(ctx.guild.roles) > 1:
             for role in ctx.guild.roles:
-                if role.name.startswith("#"):
+                if role.name.startswith("#") and len(role.name) == 7:
                     await role.delete()
             em = discord.Embed(title="Roles Deleted", description=f"All of the color roles have been deleted from the server.", color=discord.Colour(0x00ff00))
             await ctx.send(embed=em)
@@ -243,7 +254,7 @@ async def manage_deleteuseless(ctx):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         guild = ctx.guild
         for role in guild.roles:
-            if role.name.startswith("#") and len(role.members) == 0:
+            if role.name.startswith("#") and len(role.name) == 7 and len(role.members) == 0:
                 await role.delete()
         em = discord.Embed(title="Roles Deleted", description=f"All of the roles with no members using them have been deleted.", color=discord.Colour(0x00ff00))
         await ctx.send(embed=em)
