@@ -18,11 +18,21 @@ from discord_slash.context import *
 from discord_slash.error import *
 from colorthief import ColorThief
 import os
+from dotenv import load_dotenv
+import pymongo
+
+load_dotenv()
+TOKEN = os.getenv('TOKEN')
+APPID = os.getenv('APPID')
+TYPE = os.getenv('TYPE')
 
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix="*", intents=intents)
-slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, application_id=config.APPLICATIONID)
+if TYPE == "BETA":
+    slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, application_id=APPID, debug_guild=config.DEBUGSERVER)
+else:
+    slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_reload=True, application_id=APPID)
 
 # cogTypes = ["commands", "handlers", "listeners"]
 
@@ -31,6 +41,7 @@ slash = SlashCommand(bot, override_type=True, sync_commands=True, sync_on_cog_re
 #         if filename.endswith('.py'):
 #             bot.load_extension(f'cogs.{cogType}.{filename[:-3]}')
 
+database = pymongo.MongoClient(config.CONNURL, serverSelectionTimeoutMS=5000)
 
 def rgb2hex(r,g,b):
     return "#{:02x}{:02x}{:02x}".format(r,g,b)
@@ -41,12 +52,6 @@ async def on_ready():
     print(f"\n\nLogged in as {bot.user.name}")
     print(f"ID: {bot.user.id}")
     print(f"\n\nDiscord.py version: {discord.__version__}")
-    print(f"Discord.py version: {discord.version_info}")
-    print(f"Discord.py version: {discord.version_info.major}")
-    print(f"Discord.py version: {discord.version_info.minor}")
-    print(f"Discord.py version: {discord.version_info.micro}")
-    print(f"Discord.py version: {discord.version_info.releaselevel}")
-    print(f"Discord.py version: {discord.version_info.serial}")
 
     await bot.change_presence(activity=discord.Game(name="with colors!!!!!"))
 
@@ -74,8 +79,19 @@ async def on_member_join(member):
         if discord.utils.get(guild.roles, name=f"#{dominantColor}"):
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
         else:
-            role = await guild.create_role(name=f"#{dominantColor}", colour=discord.Colour(int(dominantColor, base=16)))
-            await move_role(guild, role, position=len(guild.roles)-1))
+            db = database.servers
+            collection = db.configs
+            position = collection.find_one({"guild_id": guild.id})["position"]
+            if position < len(guild.roles):
+                try:
+                    role = await guild.create_role(name=f"#{dominantColor}", colour=discord.Colour(int(dominantColor, base=16)))
+                    await role.edit(position=position)
+                except discord.errors.Forbidden:
+                    error = discord.Embed(title="Error", description="I don't have permission to move this role to the set position.", color=discord.Colour.red())
+                    await guild.owner.send(embed=error)
+            else:
+                error = discord.Embed(title="Invalid Position", description=f"The position your server ({guild.name}) has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
+                await guild.owner.send(embed=error)
             await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominantColor}"))
 
 @bot.event
@@ -84,15 +100,27 @@ async def on_guild_join(guild):
     for channel in guild.channels:
         if channel.name == "general":
             if channel.permissions_for(guild.me).send_messages:
-                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly! Also, do /config position to set the position of where roles will go.", colour=discord.Colour(0x00ff00))
                 em.set_thumbnail(url=f"{bot.user.avatar_url}")
                 await channel.send(embed=em)
             else:
                 noPerms = discord.Embed(title="I do not have permission to send messages!", description="Please make sure I have the permission to send messages in all channels.", colour=discord.Colour(0xff0000))
-                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly!", colour=discord.Colour(0x00ff00))
+                em = discord.Embed(title="Thanks for adding me!", description="Make sure to move me to the top of the role list in order for everything to work correctly! Also, do /config position to set the position of where roles will go.", colour=discord.Colour(0x00ff00))
                 em.set_thumbnail(url=f"{bot.user.avatar_url}")
                 await guild.server.owner.send(embed=noPerms)
                 await guild.server.owner.send(embed=em)
+    db = database.servers
+    post = {
+        "guild_id": guild.id,
+        "position": 0
+    }
+
+    collection = db.configs
+    posts = db.configs
+    if posts.findone({"guild_id": guild.id}):
+        pass
+    else:
+        posts.insert_one(post)
 
 # Roles Commands
 
@@ -123,9 +151,16 @@ async def roles_sync(ctx):
             for role in ctx.author.roles:
                 if role.name.startswith("#") and role.name != f"#{dominant_color}":
                     await ctx.author.remove_roles(role)
-            role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
-            await ctx.move_role(guild, role, position=len(guild.roles)-1))
-            await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
+            db = database.servers
+            collection = db.configs
+            position = collection.find_one({"guild_id": guild.id})["position"]
+            if position < len(guild.roles):
+                role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
+                await role.edit(position=position)
+            else:
+                error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
+                await ctx.send(embed=error, delete_after=5)
+            await ctx.author.add_roles(role)
             em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{dominant_color}.", color=discord.Colour(int(dominant_color, base=16)))
             await ctx.send(embed=em, delete_after=5)
     else:
@@ -146,9 +181,16 @@ async def roles_hex(ctx, hex):
         for role in ctx.author.roles:
             if role.name.startswith("#") and role.name != f"#{hexCode}":
                 await ctx.author.remove_roles(role)
-        role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
-        await ctx.move_role(guild, discord.utils.get(guild.roles, role, position=len(guild.roles)-1))
-        await ctx.author.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
+        db = database.servers
+        collection = db.configs
+        position = collection.find_one({"guild_id": guild.id})["position"]
+        if position < len(guild.roles):
+            role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
+            await role.edit(position=position)
+        else:
+            error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
+            await ctx.send(embed=error, delete_after=5)
+        await ctx.author.add_roles(role)
         em = discord.Embed(title="Role Created & Added", description=f"{ctx.author.mention} has been given the role #{hexCode}.", color=discord.Colour(int(hexCode, base=16)))
         await ctx.send(embed=em, delete_after=5)
 
@@ -160,12 +202,7 @@ async def roles_remove(ctx):
     em = discord.Embed(title="Roles Removed", description=f"{ctx.author.mention} has had all of their color roles removed.", color=discord.Colour(0x00ff00))
     await ctx.send(embed=em, delete_after=5)
 
-
-
-
 # Management Commands
-
-
 
 @slash.subcommand(base="manage", name="help", description="Shows the help menu for the manage commands.")
 async def manage_help(ctx):
@@ -185,7 +222,7 @@ async def manage_deleteall(ctx):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         if len(ctx.guild.roles) > 1:
             for role in ctx.guild.roles:
-                if role.name.startswith("#"):
+                if role.name.startswith("#") and len(role.name) == 7:
                     await role.delete()
             em = discord.Embed(title="Roles Deleted", description=f"All of the color roles have been deleted from the server.", color=discord.Colour(0x00ff00))
             await ctx.send(embed=em)
@@ -217,7 +254,7 @@ async def manage_deleteuseless(ctx):
     if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
         guild = ctx.guild
         for role in guild.roles:
-            if role.name.startswith("#") and len(role.members) == 0:
+            if role.name.startswith("#") and len(role.name) == 7 and len(role.members) == 0:
                 await role.delete()
         em = discord.Embed(title="Roles Deleted", description=f"All of the roles with no members using them have been deleted.", color=discord.Colour(0x00ff00))
         await ctx.send(embed=em)
@@ -249,9 +286,43 @@ async def manage_listroles(ctx):
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
         await ctx.send(embed=em, delete_after=5)
 
+# Server Config Commands
 
-# Debug Commands (Only for the bot owner)
+@slash.subcommand(base="config", name="help", description="Shows the help menu for the config commands.")
+async def config_help(ctx):
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
+        em = discord.Embed(title="Config Help", description="The config commands are used to configure the server.", color=discord.Colour(0x00ff00))
+        em.add_field(name="position", value="Changes the position (from the bottom of the role list) of where new color roles will be placed.", inline=False)
+        await ctx.send(embed=em)
+    else:
+        em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em, delete_after=5)
 
+@slash.subcommand(base="config", name="position", description="Changes the position (from the bottom of the role list) of where new color roles will be placed.", options=[create_option(name="position", description="The position you want to change the new color roles to.", option_type=4, required=True)])
+async def config_position(ctx, position):
+    if ctx.author.guild_permissions.administrator or ctx.author.id in config.OWNERS:
+        if position < 0 or position > len(ctx.guild.roles):
+            em = discord.Embed(title="Invalid Position", description="The position you entered is invalid. Make sure it is greater or equal to 0 and is less than the amount of roles you have in your server.", color=discord.Colour(0xff0000))
+            await ctx.send(embed=em, delete_after=5)
+        else:
+            guild = ctx.guild
+            db = database.servers
+            post = {
+                "guild_id": guild.id,
+                "position": position
+            }
+            posts = db.configs
+            if posts.find_one({"guild_id": guild.id}):
+                posts.update_one({"guild_id": guild.id}, {"$set": post})
+            else:
+                posts.insert_one(post)
+            em = discord.Embed(title="Position Changed", description=f"The position of new color roles has been changed to {position}.", color=discord.Colour(0x00ff00))
+            await ctx.send(embed=em, delete_after=5)
+    else:
+        em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em, delete_after=5)
+
+# Debug Commands
 
 @slash.subcommand(base="debug", name="forceerror", description="Forces an error to be thrown.", options=[create_option(name="error", description="The error you want to throw.", option_type=3, required=False)])
 async def debug_forceerror(ctx, error=None):
@@ -264,12 +335,53 @@ async def debug_forceerror(ctx, error=None):
         em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
         await ctx.send(embed=em, delete_after=5)
 
+@slash.subcommand(base="debug", name="status", description="Shows the status of the bot.", options=[create_option(name="dm",description="Would you like the info to be sent to you? This will uncencor any cencored information", option_type=5, required=False)])
+async def debug_status(ctx, dm=False):
+    if ctx.author.id in config.DEBUGPERMS:
+        if dm == True:
+            em = discord.Embed(title="Status", description=f"Status of all features.\n:green_circle: - Working as intended.\n:yellow_circle: - Lagging, not fully working as intended but main features still work. (Maybe restart?)\n:red_circle: - Fatal errors, unusable, crashed.", color=discord.Colour(0x00ff00))
+            if round(bot.latency * 1000) <= 100:
+                em.add_field(name="Bot", value=f":green_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+            elif round(bot.latency * 1000) <= 101 and round(bot.latency * 1000) >= 499:
+                em.add_field(name="Bot", value=f":yellow_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+            else:
+                em.add_field(name="Bot", value=f":red_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+
+            try:
+                info = database.server_info()
+            except:
+                em.add_field(name="Database", value=f":red_circle:", inline=False)
+            else:
+                em.add_field(name="Database", value=f":green_circle:", inline=False)
+
+            await ctx.author.send(embed=em)
+        else:
+            em = discord.Embed(title="Status", description=f"Status of all features.\n:green_circle: - Working as intended.\n:yellow_circle: - Lagging, not fully working as intended but main features still work. (Maybe restart?)\n:red_circle: - Fatal errors, unusable, crashed.", color=discord.Colour(0x00ff00))
+            if round(bot.latency * 1000) <= 100:
+                em.add_field(name="Bot", value=f":green_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+            elif round(bot.latency * 1000) <= 101 and round(bot.latency * 1000) >= 499:
+                em.add_field(name="Bot", value=f":yellow_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+            else:
+                em.add_field(name="Bot", value=f":red_circle: ({round(bot.latency*1000)} ms delay)", inline=False)
+
+            try:
+                info = database.server_info()
+            except:
+                em.add_field(name="Database", value=f":red_circle:", inline=False)
+            else:
+                em.add_field(name="Database", value=f":green_circle:", inline=False)
+
+            await ctx.send(embed=em)
+    else:
+        em = discord.Embed(title="No Permission", description="You do not have permission to use this command.", color=discord.Colour(0xff0000))
+        await ctx.send(embed=em, delete_after=5)
+
 @bot.event
 async def on_slash_command_error(ctx, ex):
     em = discord.Embed(title="Error", colour=0xaa0000)
     em.add_field(name="Traceback", value=ex)
     em.add_field(name="Support", value=f"[Support Server](https://discord.gg/TZpHkkNUmh)")
-    await ctx.send(embed=em, delete_after=10)
+    await ctx.send(embed=em)
     print(f"\n\n\n\n\nError!!!!!!!!!!!!!!!!!!!!!!!!!!!!\nLMFAO U SUCK AT CODING!!!!!!!!!!!!!!!!!!!!!!!\n\nDEBUG: {ctx.guild.name} - {ctx.channel} - {ctx.author}\n\nDEBUG: {ex}")
 
-bot.run(config.TOKEN)
+bot.run(TOKEN)
