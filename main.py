@@ -202,6 +202,22 @@ async def roles_remove(ctx):
     em = discord.Embed(title="Roles Removed", description=f"{ctx.author.mention} has had all of their color roles removed.", color=discord.Colour(0x00ff00))
     await ctx.send(embed=em, delete_after=5)
 
+@slash.subcommand(base="roles", name="syncall", description="Runs /roles sync on all users in the server.")
+async def roles_syncall(ctx):
+    if ctx.author.guild_permissions.manage_roles or ctx.author.guild_permissions.administrator or ctx.author.id == ctx.guild.owner_id or ctx.author.id in config.OWNERS:
+        for member in ctx.guild.members:
+            await roles_sync(ctx, member)
+        em = discord.Embed(title="Roles Synced", description=f"All members in the server have had their roles synced.", color=discord.Colour(0x00ff00))
+        await ctx.send(embed=em, delete_after=5)
+
+@slash.subcommand(base="roles", name="hexall", description="Runs /roles color on all users in the server.", options=[create_option(name="hex", description="The hex code of the color you want to make a role for.", option_type=3, required=True)])
+async def roles_hexall(ctx, hex):
+    if ctx.author.guild_permissions.manage_roles or ctx.author.guild_permissions.administrator or ctx.author.id == ctx.guild.owner_id or ctx.author.id in config.OWNERS:
+        for member in ctx.guild.members:
+            await roles_hex(ctx, member, hex)
+        em = discord.Embed(title="Roles Synced", description=f"All members in the server have had their roles synced.", color=discord.Colour(0x00ff00))
+        await ctx.send(embed=em, delete_after=5)
+
 # Management Commands
 
 @slash.subcommand(base="manage", name="help", description="Shows the help menu for the manage commands.")
