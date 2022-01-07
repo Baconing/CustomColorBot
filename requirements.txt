@@ -1,0 +1,7 @@
+discord.py
+discord-py-slash-command
+datetime
+requests
+colorthief
+python-dotenv
+pymongo[srv]
