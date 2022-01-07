@@ -73,8 +73,7 @@ async def sync(ctx):
             r.raw.decode_content = True
             shutil.copyfileobj(r.raw, f)
         color_thief = ColorThief(f'{fileName}')
-        dominant_color = color_thief.get_color(quality=1)
-        dominant_color = rgb2hex(dominant_color[0], dominant_color[1], dominant_color[2])
+        dominant_color = rgb2hex(color_thief[0], color_thief[1], color_thief[2])
         dominant_color = dominant_color.replace("#", "")
         os.remove(fileName)
         if discord.utils.get(guild.roles, name=f"#{dominant_color}"):
