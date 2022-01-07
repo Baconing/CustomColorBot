@@ -208,41 +208,42 @@ async def roles_syncall(ctx):
     guild = ctx.guild
     errors = []
     for member in guild.members:
-        pfpUrl = str(member.avatar_url)
-        fileName = pfpUrl.split("/")[-1]
-        fileName = fileName.split("?")[0]
-        r = requests.get(pfpUrl, stream=True)
-        if r.status_code == 200:
-            with open(fileName, 'wb') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
-            color_thief = ColorThief(f'{fileName}')
-            dominant_color = color_thief.get_color(quality=1)
-            dominant_color = rgb2hex(dominant_color[0], dominant_color[1], dominant_color[2])
-            dominant_color = dominant_color.replace("#", "")
-            os.remove(fileName)
-            if discord.utils.get(guild.roles, name=f"#{dominant_color}"):
-                for role in member.roles:
-                    if role.name.startswith("#") and role.name != f"#{dominant_color}":
-                        await member.remove_roles(role)
-                await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
-            else:
-                for role in member.roles:
-                    if role.name.startswith("#") and role.name != f"#{dominant_color}":
-                        await member.remove_roles(role)
-                db = database.servers
-                collection = db.configs
-                position = collection.find_one({"guild_id": guild.id})["position"]
-                if position < len(guild.roles):
-                    role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
-                    await role.edit(position=position)
+        try:
+            pfpUrl = str(member.avatar_url)
+            fileName = pfpUrl.split("/")[-1]
+            fileName = fileName.split("?")[0]
+            r = requests.get(pfpUrl, stream=True)
+            if r.status_code == 200:
+                with open(fileName, 'wb') as f:
+                    r.raw.decode_content = True
+                    shutil.copyfileobj(r.raw, f)
+                color_thief = ColorThief(f'{fileName}')
+                dominant_color = color_thief.get_color(quality=1)
+                dominant_color = rgb2hex(dominant_color[0], dominant_color[1], dominant_color[2])
+                dominant_color = dominant_color.replace("#", "")
+                os.remove(fileName)
+                if discord.utils.get(guild.roles, name=f"#{dominant_color}"):
+                    for role in member.roles:
+                        if role.name.startswith("#") and role.name != f"#{dominant_color}":
+                            await member.remove_roles(role)
+                    await member.add_roles(discord.utils.get(guild.roles, name=f"#{dominant_color}"))
                 else:
-                    error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
-                    await ctx.send(embed=error, delete_after=5)
-                await member.add_roles(role)
-            finishedUsers += 1
-            await waitingMsg.edit(content=f"<:buffering:928709341568180254> Syncing...\nThis may take a while.\n{finishedUsers}/{len(ctx.guild.members)}")
-        else:
+                    for role in member.roles:
+                        if role.name.startswith("#") and role.name != f"#{dominant_color}":
+                            await member.remove_roles(role)
+                    db = database.servers
+                    collection = db.configs
+                    position = collection.find_one({"guild_id": guild.id})["position"]
+                    if position < len(guild.roles):
+                        role = await guild.create_role(name=f"#{dominant_color}", colour=discord.Colour(int(dominant_color, base=16)))
+                        await role.edit(position=position)
+                    else:
+                        error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
+                        await ctx.send(embed=error, delete_after=5)
+                    await member.add_roles(role)
+                finishedUsers += 1
+                await waitingMsg.edit(content=f"<:buffering:928709341568180254> Syncing...\nThis may take a while.\n{finishedUsers}/{len(ctx.guild.members)}")
+        except:
             errors.append(member)
     if len(errors) > 0 and len(errors) < 10:
         em = discord.Embed(title="Errors", description=f"The following users had errors: {', '.join(str(x) for x in errors)}", color=discord.Colour(0xff0000))
@@ -263,27 +264,30 @@ async def roles_hexall(ctx, hex):
     errors = []
     hexCode = hex.replace("#", "")
     for member in guild.members:
-        if discord.utils.get(guild.roles, name=f"#{hexCode}"):
-            for role in member.roles:
-                if role.name.startswith("#") and role.name != f"#{hexCode}":
-                    await member.remove_roles(role)
-            await member.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
-        else:
-            for role in member.roles:
-                if role.name.startswith("#") and role.name != f"#{hexCode}":
-                    await member.remove_roles(role)
-            db = database.servers
-            collection = db.configs
-            position = collection.find_one({"guild_id": guild.id})["position"]
-            if position < len(guild.roles):
-                role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
-                await role.edit(position=position)
+        try:
+            if discord.utils.get(guild.roles, name=f"#{hexCode}"):
+                for role in member.roles:
+                    if role.name.startswith("#") and role.name != f"#{hexCode}":
+                        await member.remove_roles(role)
+                await member.add_roles(discord.utils.get(guild.roles, name=f"#{hexCode}"))
             else:
-                error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
-                await ctx.send(embed=error, delete_after=5)
-            await member.add_roles(role)
-        finishedUsers += 1
-        await waitingMsg.edit(content=f"<:buffering:928709341568180254> Syncing...\nThis may take a while.\n{finishedUsers}/{len(ctx.guild.members)}")
+                for role in member.roles:
+                    if role.name.startswith("#") and role.name != f"#{hexCode}":
+                        await member.remove_roles(role)
+                db = database.servers
+                collection = db.configs
+                position = collection.find_one({"guild_id": guild.id})["position"]
+                if position < len(guild.roles):
+                    role = await guild.create_role(name=f"#{hexCode}", colour=discord.Colour(int(hexCode, base=16)))
+                    await role.edit(position=position)
+                else:
+                    error = discord.Embed(title="Invalid Position", description="The position your server has set is invalid. Please enter a number between 0 and the number of roles in your server and reset with /config position. Defaulting to 0", color=discord.Colour(0xff0000))
+                    await ctx.send(embed=error, delete_after=5)
+                await member.add_roles(role)
+            finishedUsers += 1
+            await waitingMsg.edit(content=f"<:buffering:928709341568180254> Syncing...\nThis may take a while.\n{finishedUsers}/{len(ctx.guild.members)}")
+        except:
+            errors.append(member)
     if len(errors) > 0 and len(errors) < 10:
         em = discord.Embed(title="Errors", description=f"The following users were unable to recieve roles.: {', '.join(str(x) for x in errors)}", color=discord.Colour(0xff0000))
         await ctx.send(embed=em, delete_after=5)
