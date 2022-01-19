@@ -1,0 +1,31 @@
+{
+  "name": "customcolorbot",
+  "version": "1.0.",
+  "description": "a bot i was forced to make by my friend",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js dev",
+    "start": "node index.js prod"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Baconing/CustomColorBot.git"
+  },
+  "keywords": [],
+  "author": "Bacon",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Baconing/CustomColorBot/issues"
+  },
+  "homepage": "https://github.com/Baconing/CustomColorBot#readme",
+  "dependencies": {
+    "@discordjs/builders": "^0.11.0",
+    "@discordjs/rest": "^0.2.0-canary.0",
+    "discord-api-types": "^0.26.1",
+    "discord.js": "^13.6.0",
+    "dotenv": "^11.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.6.0"
+  }
+}
